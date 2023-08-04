@@ -2,12 +2,9 @@ import UIKit
 
 final class MovieQuizViewController: UIViewController {
     
-    @IBOutlet private weak var yesView: UIView!
-    
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
-        yesView.layer.cornerRadius = 15
     }
 }
 
