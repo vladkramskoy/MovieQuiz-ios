@@ -1,12 +1,13 @@
 import UIKit
 
-final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate {
+final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, AlertPresenterDelegate {
     
     private let questionAmount: Int = 10
     private var questionFactory: QuestionFactoryProtocol?
     private var currentQuestion: QuizQuestion?
     private var correctAnswers = 0
     private var currentQuestionIndex = 0
+    private var alertPresent: AlertPresenterProtocol?
     
     @IBOutlet private weak var imageView: UIImageView!
     @IBOutlet private weak var textLabel: UILabel!
@@ -24,6 +25,11 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate {
         questionFactory = QuestionFactory(delegate: self)
 
         questionFactory?.requestNextQuestion()
+        
+        let alertPresent = AlertPresenter()
+        alertPresent.delegate = self
+        self.alertPresent = alertPresent
+
     }
     
     // MARK: - QuestionFactoryDelegate
@@ -51,13 +57,19 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate {
     private func showQuestionOrResults() {
         // Блок показывает результат
         if currentQuestionIndex == questionAmount - 1 {
-            let text = "Ваш результат: \(correctAnswers)/\(questionAmount)"
-            let resultAlert = QuizResultsViewModel(title: "Этот раунд окончен!", text: text, buttonText: "Сыграть ещё раз")
-            showResult(quiz: resultAlert)
+            
+            // handler (в замыканиях обычно использовались weak self, нужно подобное применять здесь???)
+            let repeatQuiz: ((UIAlertAction) -> Void)? = repeatQuiz
+            guard let handler = repeatQuiz else { return }
+            
+            let resultAlert = AlertModel(title: "Этот раунд окончен!", message: "Ваш результат: \(correctAnswers)/\(questionAmount)", buttonText: "Сыграть ещё раз", completion: handler)
+            
+            guard let alert = alertPresent?.showResult(quiz: resultAlert) else { return }
+            self.present(alert, animated: true, completion: nil)
         } else {
             // Блок показывает след. вопрос
             currentQuestionIndex += 1
-
+            
             self.questionFactory?.requestNextQuestion()
         }
     }
@@ -86,23 +98,11 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate {
         }
     }
     
-    private func showResult(quiz result: QuizResultsViewModel) {
-        let alert = UIAlertController(
-            title: "Этот раунд окончен!",
-            message: "Ваш результат: \(correctAnswers)/\(questionAmount)",
-            preferredStyle: .alert)
-        
-        let action = UIAlertAction(title: "Сыграть ещё раз", style: .default) { [weak self] _ in
-            guard let self = self else { return }
-            self.currentQuestionIndex = 0
-            self.correctAnswers = 0
-
-            questionFactory?.requestNextQuestion()
-        }
-        
-        alert.addAction(action)
-        
-        self.present(alert, animated: true, completion: nil)
+    // repeatQuiz нужен чтобы создать handler
+    private func repeatQuiz(action: UIAlertAction) {
+        self.currentQuestionIndex = 0
+        self.correctAnswers = 0
+        self.questionFactory?.requestNextQuestion()
     }
     
     private func convert(model: QuizQuestion) -> QuizStepViewModel {
