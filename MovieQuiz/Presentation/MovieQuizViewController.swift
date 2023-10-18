@@ -1,6 +1,6 @@
 import UIKit
 
-final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, AlertPresenterDelegate {
+final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, AlertPresenterDelegate, StatisticServiceDelegate {
     
     private let questionAmount: Int = 10
     private var questionFactory: QuestionFactoryProtocol?
@@ -8,6 +8,7 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
     private var correctAnswers = 0
     private var currentQuestionIndex = 0
     private var alertPresent: AlertPresenterProtocol?
+    private var statistic: StatisticServiceProtocol?
     
     @IBOutlet private weak var imageView: UIImageView!
     @IBOutlet private weak var textLabel: UILabel!
@@ -26,10 +27,14 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
 
         questionFactory?.requestNextQuestion()
         
+        // делегат алерт
         let alertPresent = AlertPresenter()
         alertPresent.delegate = self
         self.alertPresent = alertPresent
-
+        // делегат статистика
+        let statistic = StatisticServiceImplementation()
+        statistic.delegate = self
+        self.statistic = statistic
     }
     
     // MARK: - QuestionFactoryDelegate
@@ -62,10 +67,25 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
             let repeatQuiz: ((UIAlertAction) -> Void)? = repeatQuiz
             guard let handler = repeatQuiz else { return }
             
-            let resultAlert = AlertModel(title: "Этот раунд окончен!", message: "Ваш результат: \(correctAnswers)/\(questionAmount)", buttonText: "Сыграть ещё раз", completion: handler)
+            // Вызываем метод сохранения сезультата
+            statistic?.store(correct: correctAnswers, total: questionAmount)
             
-            guard let alert = alertPresent?.showResult(quiz: resultAlert) else { return }
-            self.present(alert, animated: true, completion: nil)
+            // Безопасно извлекаем рекорд и счетчик игр из User Defaults
+            guard let recordGet = statistic?.bestGame,
+                  let gameCountGet = statistic?.gamesCount,
+                  let totalAccuracyGet = statistic?.totalAccuracy
+            else {
+                return
+            }
+            // Конвертируем сохраненную дату рекорда в нужный формат
+            let recordDate = recordGet.date
+            let dateString = recordDate.dateTimeString
+            
+            let resultAlert = AlertModel(title: "Этот раунд окончен!", message: "Ваш результат: \(correctAnswers)/\(questionAmount)\n Количество сыгранных квизов: \(gameCountGet)\n Рекорд: \(recordGet.correct)/\(recordGet.total) (\(dateString))\n Средняя точность: \(String(format: "%.2f", totalAccuracyGet))%", buttonText: "Сыграть ещё раз", completion: handler) // Экз. модели
+            
+            guard let alert = alertPresent?.showResult(quiz: resultAlert) else { return } // Экз. класса
+            
+            self.present(alert, animated: true, completion: nil) // Вызов алерта
         } else {
             // Блок показывает след. вопрос
             currentQuestionIndex += 1
