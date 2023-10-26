@@ -3,7 +3,7 @@ import UIKit
 
 final class AlertPresenter: AlertPresenterProtocol {
     
-    func showResult(quiz resultAlert: AlertModel) -> UIAlertController {
+    func show(model resultAlert: AlertModel) -> UIAlertController {
         let alertController = UIAlertController(
             title: resultAlert.title,
             message: resultAlert.message,

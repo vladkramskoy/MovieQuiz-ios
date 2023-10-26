@@ -7,7 +7,7 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
     private var currentQuestion: QuizQuestion?
     private var correctAnswers = 0
     private var currentQuestionIndex = 0
-    private var alertPresent: AlertPresenterProtocol?
+    private var alertPresenter: AlertPresenterProtocol?
     private var statistic: StatisticServiceProtocol?
     
     @IBOutlet private weak var imageView: UIImageView!
@@ -15,6 +15,7 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
     @IBOutlet private weak var counterLabel: UILabel!
     @IBOutlet private weak var yesButton: UIButton!
     @IBOutlet private weak var noButton: UIButton!
+    @IBOutlet weak var activityIndicator: UIActivityIndicatorView!
     
     // MARK: - Lifecycle
     
@@ -28,8 +29,8 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
         questionFactory?.requestNextQuestion()
         
         // алерт и след.квиз
-        let alertPresent = AlertPresenter()
-        self.alertPresent = alertPresent
+        let alertPresenter = AlertPresenter()
+        self.alertPresenter = alertPresenter
         // делегат статистика
         let statistic = StatisticServiceImplementation()
         statistic.delegate = self
@@ -51,6 +52,34 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
     }
     
     // MARK: - Private functions
+    
+    private func showLoadingIndicator() {
+        activityIndicator.isHidden = false
+        activityIndicator.startAnimating()
+    }
+    
+    func hideLoadingIndicator() {
+        activityIndicator.isHidden = true
+        activityIndicator.stopAnimating()
+    }
+    
+    private func showNetworkError(message: String) {
+        hideLoadingIndicator()
+        
+        let alertError = AlertModel(title: "Ошибка",
+                               message: message,
+                               buttonText: "Попробовать ещё раз") { [weak self] _ in
+            guard let self = self else { return }
+            
+            self.currentQuestionIndex = 0
+            self.correctAnswers = 0
+            
+            self.questionFactory?.requestNextQuestion()
+        }
+        
+        guard let alert = alertPresenter?.show(model: alertError) else { return }
+        present(alert, animated: true, completion: nil)
+    }
     
     private func show(quiz step: QuizStepViewModel) {
         imageView.image = step.image
@@ -90,7 +119,7 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
                                          buttonText: "Сыграть ещё раз",
                                          completion: handler) // Экз. модели
             
-            guard let alert = alertPresent?.showResult(quiz: resultAlert) else { return } // Экз. класса
+            guard let alert = alertPresenter?.show(model: resultAlert) else { return } // Экз. класса
             
             self.present(alert, animated: true, completion: nil) // Вызов алерта
         } else {
