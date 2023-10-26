@@ -1,8 +1,7 @@
 import Foundation
 import UIKit
 
-class AlertPresenter: AlertPresenterProtocol {
-    weak var delegate: AlertPresenterDelegate?
+final class AlertPresenter: AlertPresenterProtocol {
     
     func showResult(quiz resultAlert: AlertModel) -> UIAlertController {
         let alertController = UIAlertController(
@@ -16,5 +15,4 @@ class AlertPresenter: AlertPresenterProtocol {
         
         return alertController
     }
-    
 }

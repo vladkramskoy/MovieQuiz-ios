@@ -1,6 +1,6 @@
 import UIKit
 
-final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, AlertPresenterDelegate, StatisticServiceDelegate {
+final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, StatisticServiceDelegate {
     
     private let questionAmount: Int = 10
     private var questionFactory: QuestionFactoryProtocol?
@@ -27,9 +27,8 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
 
         questionFactory?.requestNextQuestion()
         
-        // делегат алерт
+        // алерт и след.квиз
         let alertPresent = AlertPresenter()
-        alertPresent.delegate = self
         self.alertPresent = alertPresent
         // делегат статистика
         let statistic = StatisticServiceImplementation()
@@ -81,7 +80,15 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
             let recordDate = recordGet.date
             let dateString = recordDate.dateTimeString
             
-            let resultAlert = AlertModel(title: "Этот раунд окончен!", message: "Ваш результат: \(correctAnswers)/\(questionAmount)\n Количество сыгранных квизов: \(gameCountGet)\n Рекорд: \(recordGet.correct)/\(recordGet.total) (\(dateString))\n Средняя точность: \(String(format: "%.2f", totalAccuracyGet))%", buttonText: "Сыграть ещё раз", completion: handler) // Экз. модели
+            let resultAlert = AlertModel(title: "Этот раунд окончен!",
+                                         message: """
+                                         Ваш результат: \(correctAnswers)/\(questionAmount)
+                                         Количество сыгранных квизов: \(gameCountGet)
+                                         Рекорд: \(recordGet.correct)/\(recordGet.total) (\(dateString))
+                                         Средняя точность: \(String(format: "%.2f", totalAccuracyGet))%
+                                         """,
+                                         buttonText: "Сыграть ещё раз",
+                                         completion: handler) // Экз. модели
             
             guard let alert = alertPresent?.showResult(quiz: resultAlert) else { return } // Экз. класса
             
@@ -149,5 +156,4 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
         let givenAnswer = false
         showAnswerResult(isCorrect: givenAnswer == currentQuestion.correctAnswer)
     }
-    
 }

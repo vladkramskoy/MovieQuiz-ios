@@ -26,7 +26,6 @@ final class StatisticServiceImplementation: StatisticServiceProtocol {
         
         // Ув. счетчик игр
         gamesCount += 1
-        
     }
     
     var totalAccuracy: Double {
@@ -67,15 +66,13 @@ final class StatisticServiceImplementation: StatisticServiceProtocol {
         }
     }
     
-    // Более короткий способ записи в UD. Используется в bestGame. Можно не использовать
+    // Более короткий способ записи в UD. Используется в bestGame
     private let userDefaults = UserDefaults.standard
     
     // Вместо обычных ключей нам предлагается использовать текущий enum, в котором указаны все сущности которые мы должны сохранить в UD
     private enum Keys: String {
         case correct, total, bestGame, gamesCount
     }
-
-
 }
 
 
