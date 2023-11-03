@@ -1,7 +1,7 @@
 import UIKit
 
 final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, StatisticServiceDelegate {
-    
+
     private let questionAmount: Int = 10
     private var questionFactory: QuestionFactoryProtocol?
     private var currentQuestion: QuizQuestion?
@@ -24,9 +24,10 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
         imageView.layer.masksToBounds = true
         imageView.layer.cornerRadius = 20
         
-        questionFactory = QuestionFactory(delegate: self)
+        questionFactory = QuestionFactory(moviesLoader: MoviesLoader(), delegate: self)
 
-        questionFactory?.requestNextQuestion()
+        showLoadingIndicator()
+        questionFactory?.loadData()
         
         // алерт и след.квиз
         let alertPresenter = AlertPresenter()
@@ -74,7 +75,8 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
             self.currentQuestionIndex = 0
             self.correctAnswers = 0
             
-            self.questionFactory?.requestNextQuestion()
+            showLoadingIndicator()
+            questionFactory?.loadData()
         }
         
         guard let alert = alertPresenter?.show(model: alertError) else { return }
@@ -163,12 +165,23 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
     
     private func convert(model: QuizQuestion) -> QuizStepViewModel {
         let questionStep = QuizStepViewModel(
-            image: UIImage(named: model.image) ?? UIImage(),
+            image: UIImage(data: model.image) ?? UIImage(),
             question: model.text,
             questionNumber: "\(currentQuestionIndex + 1)/\(questionAmount)")
         return questionStep
     }
    
+    // MARK: - Functions
+    
+    func didLoadDataFromServer() {
+        activityIndicator.isHidden = true
+        questionFactory?.requestNextQuestion()
+    }
+    
+    func didFailToLoadData(with error: Error) {
+        showNetworkError(message: error.localizedDescription)
+    }
+    
     // MARK: - Actions
     
     @IBAction private func yesButtonClicked(_ sender: UIButton) {
