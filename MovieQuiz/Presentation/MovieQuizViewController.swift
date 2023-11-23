@@ -59,7 +59,7 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
         activityIndicator.startAnimating()
     }
     
-    func hideLoadingIndicator() {
+    private func hideLoadingIndicator() {
         activityIndicator.isHidden = true
         activityIndicator.stopAnimating()
     }
@@ -140,15 +140,12 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
         imageView.layer.borderWidth = 8
         imageView.layer.borderColor = isCorrect ? UIColor.ypGreen.cgColor : UIColor.ypRed.cgColor
         
-        // Выключаем кнопки
-        self.yesButton.isEnabled = false
-        self.noButton.isEnabled = false
+        enableButtons(enable: false)
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
             guard let self = self else { return }
-            // Активируем кнопки
-            self.yesButton.isEnabled = true
-            self.noButton.isEnabled = true
+            
+            enableButtons(enable: true)
             // Убираем рамку
             self.imageView.layer.borderWidth = 0
             // Показываем след. вопрос
@@ -169,6 +166,16 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
             question: model.text,
             questionNumber: "\(currentQuestionIndex + 1)/\(questionAmount)")
         return questionStep
+    }
+    
+    private func enableButtons(enable: Bool) {
+        if enable {
+            self.yesButton.isEnabled = true
+            self.noButton.isEnabled = true
+        } else {
+            self.yesButton.isEnabled = false
+            self.noButton.isEnabled = false
+        }
     }
    
     // MARK: - Functions
