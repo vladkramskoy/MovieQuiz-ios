@@ -1,12 +1,11 @@
 import UIKit
 
 final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, StatisticServiceDelegate {
-
-    private let questionAmount: Int = 10
+    
+    private let presenter = MovieQuizPresenter()
     private var questionFactory: QuestionFactoryProtocol?
     private var currentQuestion: QuizQuestion?
     private var correctAnswers = 0
-    private var currentQuestionIndex = 0
     private var alertPresenter: AlertPresenterProtocol?
     private var statistic: StatisticServiceProtocol?
     
@@ -46,7 +45,7 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
         }
         
         currentQuestion = question
-        let viewModel = convert(model: question)
+        let viewModel = presenter.convert(model: question)
         DispatchQueue.main.async { [weak self] in
             self?.show(quiz: viewModel)
         }
@@ -72,7 +71,7 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
                                buttonText: "Попробовать ещё раз") { [weak self] _ in
             guard let self = self else { return }
             
-            self.currentQuestionIndex = 0
+            self.presenter.resetQuestionIndex()
             self.correctAnswers = 0
             
             showLoadingIndicator()
@@ -91,14 +90,14 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
     
     private func showQuestionOrResults() {
         // Блок показывает результат
-        if currentQuestionIndex == questionAmount - 1 {
+        if presenter.isLastQuestion() {
             
             // handler (в замыканиях обычно использовались weak self, нужно подобное применять здесь???)
             let repeatQuiz: ((UIAlertAction) -> Void)? = repeatQuiz
             guard let handler = repeatQuiz else { return }
             
             // Вызываем метод сохранения сезультата
-            statistic?.store(correct: correctAnswers, total: questionAmount)
+            statistic?.store(correct: correctAnswers, total: presenter.questionAmount)
             
             // Безопасно извлекаем рекорд и счетчик игр из User Defaults
             guard let recordGet = statistic?.bestGame,
@@ -113,7 +112,7 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
             
             let resultAlert = AlertModel(title: "Этот раунд окончен!",
                                          message: """
-                                         Ваш результат: \(correctAnswers)/\(questionAmount)
+                                         Ваш результат: \(correctAnswers)/\(presenter.questionAmount)
                                          Количество сыгранных квизов: \(gameCountGet)
                                          Рекорд: \(recordGet.correct)/\(recordGet.total) (\(dateString))
                                          Средняя точность: \(String(format: "%.2f", totalAccuracyGet))%
@@ -126,7 +125,7 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
             self.present(alert, animated: true, completion: nil) // Вызов алерта
         } else {
             // Блок показывает след. вопрос
-            currentQuestionIndex += 1
+            presenter.switchToNextQuestion()
             
             self.questionFactory?.requestNextQuestion()
         }
@@ -155,17 +154,9 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
     
     // repeatQuiz нужен чтобы создать handler
     private func repeatQuiz(action: UIAlertAction) {
-        self.currentQuestionIndex = 0
+        self.presenter.resetQuestionIndex()
         self.correctAnswers = 0
         self.questionFactory?.requestNextQuestion()
-    }
-    
-    private func convert(model: QuizQuestion) -> QuizStepViewModel {
-        let questionStep = QuizStepViewModel(
-            image: UIImage(data: model.image) ?? UIImage(),
-            question: model.text,
-            questionNumber: "\(currentQuestionIndex + 1)/\(questionAmount)")
-        return questionStep
     }
     
     private func enableButtons(enable: Bool) {
