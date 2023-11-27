@@ -1,15 +1,19 @@
 import UIKit
 
 final class MovieQuizPresenter: QuestionFactoryDelegate {
-    let questionAmount: Int = 10
-    var currentQuestionIndex = 0
-    var currentQuestion: QuizQuestion?
-    var correctAnswers = 0
+    private let statisticService: StatisticServiceProtocol!
     private var questionFactory: QuestionFactoryProtocol?
     private weak var viewController: MovieQuizViewController?
     
+    private let questionAmount: Int = 10
+    private var currentQuestionIndex = 0
+    private var currentQuestion: QuizQuestion?
+    private var correctAnswers = 0
+    
     init(viewController: MovieQuizViewController) {
         self.viewController = viewController
+        
+        statisticService = StatisticServiceImplementation()
         
         questionFactory = QuestionFactory(moviesLoader: MoviesLoader(), delegate: self)
         questionFactory?.loadData()
@@ -64,21 +68,67 @@ final class MovieQuizPresenter: QuestionFactoryDelegate {
         return questionStep
     }
     
-    func showQuestionOrResults() {
+    // repeatQuiz нужен чтобы создать handler
+    func repeatQuiz(action: UIAlertAction) {
+        self.restartGame()
+    }
+    
+    func yesButtonClicked(_ sender: UIButton) {
+        didAnswer(isCorrectAnswer: true)
+    }
+    
+    func noButtonClicked(_ sender: UIButton) {
+        didAnswer(isCorrectAnswer: false)
+    }
+    
+    // MARK: - Private functions
+    
+    private func didAnswer(isCorrectAnswer: Bool) {
+        guard let currentQuestion = currentQuestion else {
+            return
+        }
+        
+        let givenAnswer = isCorrectAnswer
+        
+        if isCorrectAnswer {
+            correctAnswers += 1
+        }
+        
+        proceedWithAnswer(isCorrect: givenAnswer == currentQuestion.correctAnswer)
+    }
+    
+    private func proceedWithAnswer(isCorrect: Bool) {
+
+        viewController?.highlightImageBorder(isCorrect: isCorrect, border: true)
+        
+        viewController?.enableButtons(enable: false)
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            guard let self = self else { return }
+            
+            viewController?.enableButtons(enable: true)
+            // Убираем рамку
+            viewController?.highlightImageBorder(isCorrect: isCorrect, border: false)
+            // Показываем след. вопрос
+            proceedToNextQuestionOrResults()
+        }
+    }
+    
+    private func proceedToNextQuestionOrResults() {
         // Блок показывает результат
         if self.isLastQuestion() {
             
-            // handler (в замыканиях обычно использовались weak self, нужно подобное применять здесь???)
+            // handler
             let repeatQuiz: ((UIAlertAction) -> Void)? = repeatQuiz
             guard let handler = repeatQuiz else { return }
             
             // Вызываем метод сохранения сезультата
-                viewController?.statistic?.store(correct: correctAnswers, total: questionAmount)
+                self.statisticService?.store(correct: correctAnswers, total: questionAmount)
             
             // Безопасно извлекаем рекорд и счетчик игр из User Defaults
-            guard let recordGet = viewController?.statistic?.bestGame,
-                  let gameCountGet = viewController?.statistic?.gamesCount,
-                  let totalAccuracyGet = viewController?.statistic?.totalAccuracy
+            guard let recordGet = self.statisticService?.bestGame,
+                  let gameCountGet = self.statisticService?.gamesCount,
+                  let totalAccuracyGet = self.statisticService?.totalAccuracy
             else {
                 return
             }
@@ -105,32 +155,5 @@ final class MovieQuizPresenter: QuestionFactoryDelegate {
             
             questionFactory?.requestNextQuestion()
         }
-    }
-    
-    // repeatQuiz нужен чтобы создать handler
-    func repeatQuiz(action: UIAlertAction) {
-        self.restartGame()
-    }
-    
-    func yesButtonClicked(_ sender: UIButton) {
-        didAnswer(isCorrectAnswer: true)
-    }
-    
-    func noButtonClicked(_ sender: UIButton) {
-        didAnswer(isCorrectAnswer: false)
-    }
-    
-    func didAnswer(isCorrectAnswer: Bool) {
-        guard let currentQuestion = currentQuestion else {
-            return
-        }
-        
-        let givenAnswer = isCorrectAnswer
-        
-        if isCorrectAnswer {
-            correctAnswers += 1
-        }
-        
-        viewController?.showAnswerResult(isCorrect: givenAnswer == currentQuestion.correctAnswer)
     }
 }
