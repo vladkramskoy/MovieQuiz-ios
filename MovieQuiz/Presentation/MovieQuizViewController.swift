@@ -1,11 +1,9 @@
 import UIKit
 
-final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, StatisticServiceDelegate {
-    
-    private let presenter = MovieQuizPresenter()
-    private var questionFactory: QuestionFactoryProtocol? // дубли
+final class MovieQuizViewController: UIViewController, StatisticServiceDelegate {
     var alertPresenter: AlertPresenterProtocol?
     var statistic: StatisticServiceProtocol?
+    private var presenter: MovieQuizPresenter!
     
     @IBOutlet private weak var imageView: UIImageView!
     @IBOutlet private weak var textLabel: UILabel!
@@ -21,10 +19,9 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
         imageView.layer.masksToBounds = true
         imageView.layer.cornerRadius = 20
         
-        questionFactory = QuestionFactory(moviesLoader: MoviesLoader(), delegate: self)
+        presenter = MovieQuizPresenter(viewController: self)
 
         showLoadingIndicator()
-        questionFactory?.loadData()
         
         // алерт и след.квиз
         let alertPresenter = AlertPresenter()
@@ -33,29 +30,23 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
         let statistic = StatisticServiceImplementation()
         statistic.delegate = self
         self.statistic = statistic
-        
-        presenter.viewController = self
-    }
-    
-    // MARK: - QuestionFactoryDelegate
-    
-    func didReceiveNextQuestion(question: QuizQuestion?) {
-        presenter.didReceiveNextQuestion(question: question)
     }
     
     // MARK: - Private functions
     
-    private func showLoadingIndicator() {
-        activityIndicator.isHidden = false
-        activityIndicator.startAnimating()
+    private func enableButtons(enable: Bool) {
+        if enable {
+            self.yesButton.isEnabled = true
+            self.noButton.isEnabled = true
+        } else {
+            self.yesButton.isEnabled = false
+            self.noButton.isEnabled = false
+        }
     }
     
-    private func hideLoadingIndicator() {
-        activityIndicator.isHidden = true
-        activityIndicator.stopAnimating()
-    }
+    // MARK: - Functions
     
-    private func showNetworkError(message: String) {
+    func showNetworkError(message: String) {
         hideLoadingIndicator()
         
         let alertError = AlertModel(title: "Ошибка",
@@ -66,7 +57,6 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
             self.presenter.restartGame()
             
             showLoadingIndicator()
-            questionFactory?.loadData()
         }
         
         guard let alert = alertPresenter?.show(model: alertError) else { return }
@@ -93,30 +83,18 @@ final class MovieQuizViewController: UIViewController, QuestionFactoryDelegate, 
             // Убираем рамку
             self.imageView.layer.borderWidth = 0
             // Показываем след. вопрос
-            self.presenter.questionFactory = self.questionFactory
             self.presenter.showQuestionOrResults()
         }
     }
     
-    private func enableButtons(enable: Bool) {
-        if enable {
-            self.yesButton.isEnabled = true
-            self.noButton.isEnabled = true
-        } else {
-            self.yesButton.isEnabled = false
-            self.noButton.isEnabled = false
-        }
+    func showLoadingIndicator() {
+        activityIndicator.isHidden = false
+        activityIndicator.startAnimating()
     }
-   
-    // MARK: - Functions
     
-    func didLoadDataFromServer() {
+    func hideLoadingIndicator() {
         activityIndicator.isHidden = true
-        questionFactory?.requestNextQuestion()
-    }
-    
-    func didFailToLoadData(with error: Error) {
-        showNetworkError(message: error.localizedDescription)
+        activityIndicator.stopAnimating()
     }
     
     // MARK: - Actions
