@@ -56,18 +56,26 @@ final class MovieQuizUITests: XCTestCase {
     
     func testIndexLabel() {
         app.buttons["Yes"].tap()
-        
         sleep(1)
+        
         let indexLabel = app.staticTexts["Index"]
         
         XCTAssertEqual(indexLabel.label, "2/10")
+        sleep(1)
+        
+        app.buttons["No"].tap()
+        sleep(1)
+        
+        XCTAssertEqual(indexLabel.label, "3/10")
     }
     
-    func testAlertResult() {
+    func testAlertDismiss() {
+        sleep(2)
         for _ in 1...10 {
             app.buttons["Yes"].tap()
-            sleep(1)
+            sleep(2)
         }
+        sleep(1)
         
         let alert = app.alerts["Result"]
         let button = app.buttons["Repeat"]
@@ -75,9 +83,19 @@ final class MovieQuizUITests: XCTestCase {
         XCTAssertTrue(button.exists)
         XCTAssertEqual(button.label, "Сыграть ещё раз")
         XCTAssertEqual(alert.label, "Этот раунд окончен!")
+        
         /*
          В учебнике использовали id только для алерта (alert.buttons.firstMatch.label)
          firstMatch возвращает текст первой кнопки
          */
+        
+        alert.buttons.firstMatch.tap()
+        sleep(2)
+        
+        let indexLabel = app.staticTexts["Index"]
+        
+        XCTAssertFalse(alert.exists)
+        XCTAssertTrue(indexLabel.label == "1/10")
+        
     }
 }
